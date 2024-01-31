@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Chat Room</title>
+  <style>
+    #messages {
+      height: 300px;
+      overflow-y: scroll;
+    }
+  </style>
+</head>
+<body>
+  <div id="messages"></div>
+  <div id="users"></div>
+  <form id="message-form">
+    <input type="text" id="username" placeholder="Enter your username" required />
+    <input type="text" id="message" placeholder="Enter your message" required />
+    <button type="submit">Send</button>
+  </form>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    // Display incoming messages
+    socket.on('message', (msg) => {
+      const messagesDiv = document.getElementById('messages');
+      const messageElement = document.createElement('p');
+      messageElement.textContent = `${msg.user}: ${msg.text}`;
+      messagesDiv.appendChild(messageElement);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
+
+    // Display updated list of users
+    socket.on('update users', (users) => {
+      const usersDiv = document.getElementById('users');
+      usersDiv.innerHTML = '';
+      users.forEach((user) => {
+        const userElement = document.createElement('p');
+        userElement.textContent = user;
+        usersDiv.appendChild(userElement);
+      });
+    });
+
+    // Display private messages
+    socket.on('private message', (data) => {
+      const messagesDiv = document.getElementById('messages');
+      const messageElement = document.createElement('p');
+      messageElement.textContent = `(Private) ${data.sender} to ${socket.username}: ${data.message}`;
+      messagesDiv.appendChild(messageElement);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
+
+    // Send new user and message
+    document.getElementById('message-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const message = document.getElementById('message').value;
+
+      // Send new user to server
+      socket.emit('new user', username);
+
+      // Send message to server
+      socket.emit('send message', message);
+
+      // Clear input fields
+      document.getElementById('username').value = '';
+      document.getElementById('message').value = '';
+    });
+
+    // Function to send private message
+    function sendPrivateMessage() {
+      const recipient = prompt('Enter recipient username:');
+      const message = prompt('Enter your private message:');
+      socket.emit('private message', { recipient, message });
+    }
+  </script>
+  <button onclick="sendPrivateMessage()">Send Private Message</button>
+</body>
+</html>
